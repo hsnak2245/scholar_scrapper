@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import google.generativeai as genai
+import pyperclip  # For copying content to clipboard
 
 # Configure Gemini API
 GEMINI_API_KEY = "AIzaSyC6gs5gBMoR40vZXD_fn5NGpk7o6tUZ_RU"
@@ -11,7 +12,7 @@ model = genai.GenerativeModel('gemini-pro')
 
 # Page configuration
 st.set_page_config(
-    page_title="Scholar Profile & Email Customizer",
+    page_title="Scholar Profile Analyzer & Email Assistant",
     page_icon="📚",
     layout="wide"
 )
@@ -133,59 +134,86 @@ def customize_email(template, context, comments):
 # Streamlit UI
 st.title("📚 Scholar Profile & Email Customizer")
 
-# Input for Google Scholar Profile URL
-scholar_url = st.text_input(
-    "Enter Google Scholar Profile URL",
-    placeholder="https://scholar.google.com/citations?user=..."
-)
+# Tabs for different functionalities
+tab1, tab2 = st.tabs(["Scholar Profile Analyzer", "Email Customizer"])
 
-# Select the details to be included
-details = st.multiselect(
-    "Select details to include in analysis:",
-    ["name", "affiliation", "summary", "interests", "metrics", "publications"],
-    default=["name", "affiliation", "metrics"]
-)
+# Scholar Profile Analyzer Tab
+with tab1:
+    st.header("📚 Scholar Profile Analyzer")
 
-# Input for email template and instructions
-email_template = st.text_area(
-    "Email Template",
-    height=200,
-    placeholder="Enter your email template here..."
-)
+    scholar_url = st.text_input(
+        "Enter Google Scholar Profile URL",
+        placeholder="https://scholar.google.com/citations?user=..."
+    )
 
-additional_comments = st.text_area(
-    "Additional Comments",
-    height=100,
-    placeholder="Any additional instructions or comments..."
-)
+    # Select the details to be included
+    details = st.multiselect(
+        "Select details to include in analysis:",
+        ["name", "affiliation", "summary", "interests", "metrics", "publications"],
+        default=["name", "affiliation", "metrics"]
+    )
 
-# Analyze Profile and Generate Email
-if st.button("Analyze Profile & Generate Email"):
-    if scholar_url:
-        with st.spinner("Analyzing profile..."):
-            # Step 1: Scrape and analyze the profile
-            summary = scrape_and_analyze_profile(scholar_url, details)
-            
-            if summary:
-                st.session_state.current_summary = summary
-                st.success("Profile analyzed successfully!")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Analyze Profile", type="primary"):
+            if scholar_url:
+                with st.spinner("Analyzing profile..."):
+                    # Step 1: Scrape and analyze the profile
+                    summary = scrape_and_analyze_profile(scholar_url, details)
 
-                # Step 2: Populate the email context with profile data
-                email_context = st.session_state.current_summary
-
-                # Step 3: Use Gemini API to customize email
-                with st.spinner("Customizing email..."):
-                    customized_email = customize_email(email_template, email_context, additional_comments)
-                    st.session_state.customized_email = customized_email
-
-                    # Display the customized email
-                    st.header("Customized Email")
-                    st.text_area("Result", value=customized_email, height=300)
+                    if summary:
+                        st.session_state.current_summary = summary
+                        st.success("Profile analyzed successfully!")
+                    else:
+                        st.error("Failed to analyze profile")
             else:
-                st.error("Failed to analyze profile")
-    else:
-        st.warning("Please enter a Google Scholar URL")
+                st.warning("Please enter a Google Scholar URL")
 
+    # Display results
+    if 'current_summary' in st.session_state:
+        st.header("Analysis Results")
+        st.text_area("Profile Summary", st.session_state.current_summary, height=300)
+
+        # Copy button
+        if st.button("Copy Summary to Clipboard"):
+            pyperclip.copy(st.session_state.current_summary)
+            st.success("Profile Summary copied to clipboard")
+
+# Email Customizer Tab
+with tab2:
+    st.header("✉️ Email Customizer")
+
+    email_template = st.text_area(
+        "Email Template",
+        height=200,
+        placeholder="Enter your email template here..."
+    )
+
+    additional_comments = st.text_area(
+        "Additional Comments",
+        height=100,
+        placeholder="Any additional instructions or comments..."
+    )
+
+    if st.button("Generate Email"):
+        if 'current_summary' in st.session_state and email_template:
+            with st.spinner("Customizing email..."):
+                email_context = st.session_state.current_summary
+                customized_email = customize_email(email_template, email_context, additional_comments)
+                st.session_state.customized_email = customized_email
+
+                # Display the customized email
+                st.header("Customized Email")
+                st.text_area("Result", value=customized_email, height=300)
+
+                # Copy button for email
+                if st.button("Copy Customized Email to Clipboard"):
+                    pyperclip.copy(customized_email)
+                    st.success("Customized Email copied to clipboard")
+
+    else:
+        st.warning("Please provide both email template and profile context.")
+        
 # Footer
 st.markdown("---")
 st.markdown("Made with ❤️ using Streamlit, Google Scholar, and Gemini AI")
