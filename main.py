@@ -3,7 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import google.generativeai as genai
-import pyperclip  # For copying content to clipboard
 
 # Configure Gemini API
 GEMINI_API_KEY = "AIzaSyC6gs5gBMoR40vZXD_fn5NGpk7o6tUZ_RU"
@@ -153,31 +152,24 @@ with tab1:
         default=["name", "affiliation", "metrics"]
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Analyze Profile", type="primary"):
-            if scholar_url:
-                with st.spinner("Analyzing profile..."):
-                    # Step 1: Scrape and analyze the profile
-                    summary = scrape_and_analyze_profile(scholar_url, details)
+    if st.button("Analyze Profile", type="primary"):
+        if scholar_url:
+            with st.spinner("Analyzing profile..."):
+                # Step 1: Scrape and analyze the profile
+                summary = scrape_and_analyze_profile(scholar_url, details)
 
-                    if summary:
-                        st.session_state.current_summary = summary
-                        st.success("Profile analyzed successfully!")
-                    else:
-                        st.error("Failed to analyze profile")
-            else:
-                st.warning("Please enter a Google Scholar URL")
+                if summary:
+                    st.session_state.current_summary = summary
+                    st.success("Profile analyzed successfully!")
+                else:
+                    st.error("Failed to analyze profile")
+        else:
+            st.warning("Please enter a Google Scholar URL")
 
     # Display results
     if 'current_summary' in st.session_state:
         st.header("Analysis Results")
         st.text_area("Profile Summary", st.session_state.current_summary, height=300)
-
-        # Copy button
-        if st.button("Copy Summary to Clipboard"):
-            pyperclip.copy(st.session_state.current_summary)
-            st.success("Profile Summary copied to clipboard")
 
 # Email Customizer Tab
 with tab2:
@@ -205,11 +197,6 @@ with tab2:
                 # Display the customized email
                 st.header("Customized Email")
                 st.text_area("Result", value=customized_email, height=300)
-
-                # Copy button for email
-                if st.button("Copy Customized Email to Clipboard"):
-                    pyperclip.copy(customized_email)
-                    st.success("Customized Email copied to clipboard")
 
     else:
         st.warning("Please provide both email template and profile context.")
